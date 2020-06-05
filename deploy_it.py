@@ -5,6 +5,7 @@ import os
 import shutil
 from pystemd.systemd1 import Unit
 import time
+import subprocess
 
 os.mkdir("./deploy_it")
 
@@ -96,7 +97,9 @@ with open("deploy_it/README.txt", "w") as f:
 # Then copy the gunicorn file to that folder
 if os.path.exists("/etc/systemd/system/"):
     print("systemd folder found!")
-    shutil.copyfile("deploy_it/gunicorn.service", "/etc/systemd/system/gunicorn.service")
+    shutil.copyfile(
+        "deploy_it/gunicorn.service", "/etc/systemd/system/gunicorn.service"
+    )
 else:
     print("systemd folder was not found! Couldn't copy gunicorn.service file.")
 
@@ -110,16 +113,50 @@ else:
     print("Couldn't find nginx configuration folder. Maybe it isn't installed :(")
 
 # Loading the Unit file and starting systemd service
-unit = Unit(b'gunicorn.service')
+unit = Unit(b"gunicorn.service")
 unit.load()
-unit.Unit.Start(b'replace')
+unit.Unit.Start(b"replace")
 print("Sleeping for 7 seconds and waiting for gunicorn to start")
 time.sleep(7)
 
 # If gunicorn has started, we should see a project_name.sock file
-if os.path.exists(nginx_answers["working_directory"]+"/"+nginx_answers["django_project_name"]+".sock"):
+if os.path.exists(
+    nginx_answers["working_directory"]
+    + "/"
+    + nginx_answers["django_project_name"]
+    + ".sock"
+):
     print("Socket file found. Gunicorn has started.")
 else:
     print(".sock file not found. Maybe gunicorn wasn't able to start :(")
 
+# Creating a soft link to sites-available
+subprocess.Popen(
+    [
+        "sudo",
+        "ln",
+        "-s",
+        f"/etc/nginx/sites-available/{nginx_answers['django_project_name']}",
+        "/etc/nginx/sites-enabled",
+    ]
+)
+if os.path.exists(f"/etc/nginx/sites-enabled/{nginx_answers['django_project_name']}"):
+    print("Nginx config file link created to sites-enabled")
+else:
+    print("Unable to create a link of nginx config file to sites-enabled")
+
+
 # Checking nginx config file syntax
+out = subprocess.Popen(['sudo', 'nginx', '-t'], stdout=subprocess.PIPE,
+           stderr=subprocess.STDOUT)
+stdout, stderr = out.communicate()
+
+if stderr is None:
+    print("nginx file seems to be just fine :)")
+else:
+    print("There is some problem in the generated nginx config file")
+
+
+# restart nginx
+# enable nginx to pass through the firewall
+
