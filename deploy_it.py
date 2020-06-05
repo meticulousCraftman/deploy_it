@@ -2,6 +2,7 @@ from pyfiglet import Figlet
 from PyInquirer import prompt
 from jinja2 import Template
 import os
+import shutil
 
 os.mkdir("./deploy_it")
 
@@ -69,10 +70,10 @@ nginx_questions = [
 
 nginx_answers = prompt(nginx_questions)
 print(nginx_answers)
+nginx_answers.update(gunicorn_answers)
 
 print("Generating file...")
 with open("nginx-template", "r") as f:
-    nginx_answers.update(gunicorn_answers)
     template = Template(f.read())
     print("Nginx service file created!")
     nginx_file = open("deploy_it/" + nginx_answers["django_project_name"], "w")
@@ -89,8 +90,25 @@ with open("deploy_it/README.txt", "w") as f:
     f.close()
 
 
+# Check if systemd folder is present
+# Then copy the gunicorn file to that folder
+if os.path.exists("/etc/systemd/system/"):
+    print("systemd folder found!")
+    shutil.copyfile("deploy_it/gunicorn.service", "/etc/systemd/system/gunicorn.service")
+else:
+    print("systemd folder was not found! Couldn't copy gunicorn.service file.")
+
+
+# Check if nginx folder is present
+# If the folder is present, then copy the nginx server config files
+if os.path.exists("/etc/nginx/sites-available/"):
+    print("Found nginx folder")
+    shutil.copyfile(f"deploy_it/{nginx_answers['django_project_name']}")
+else:
+    print("Couldn't find nginx configuration folder. Maybe it isn't installed :(")
+
 # Run this script with sudo
 # Done - Create gunicorn systemd service file
 # Done - Create nginx server block file
 # Done - Generates the files and places them in the local folder
-# Copies the files to the required folder
+# Done - Copies the files to the required folder
