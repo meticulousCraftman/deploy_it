@@ -9,3 +9,4 @@ Deploy your django apps just by running one single command.
   - apt package manager
   - systemd program
   - postgresql (future)
+  - libsystemd-dev (sudo apt install libsystemd-dev, required for pystemd)

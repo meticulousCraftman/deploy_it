@@ -3,6 +3,8 @@ from PyInquirer import prompt
 from jinja2 import Template
 import os
 import shutil
+from pystemd.systemd1 import Unit
+import time
 
 os.mkdir("./deploy_it")
 
@@ -107,8 +109,17 @@ if os.path.exists("/etc/nginx/sites-available/"):
 else:
     print("Couldn't find nginx configuration folder. Maybe it isn't installed :(")
 
-# Run this script with sudo
-# Done - Create gunicorn systemd service file
-# Done - Create nginx server block file
-# Done - Generates the files and places them in the local folder
-# Done - Copies the files to the required folder
+# Loading the Unit file and starting systemd service
+unit = Unit(b'gunicorn.service')
+unit.load()
+unit.Unit.Start(b'replace')
+print("Sleeping for 7 seconds and waiting for gunicorn to start")
+time.sleep(7)
+
+# If gunicorn has started, we should see a project_name.sock file
+if os.path.exists(nginx_answers["working_directory"]+"/"+nginx_answers["django_project_name"]+".sock"):
+    print("Socket file found. Gunicorn has started.")
+else:
+    print(".sock file not found. Maybe gunicorn wasn't able to start :(")
+
+# Checking nginx config file syntax
