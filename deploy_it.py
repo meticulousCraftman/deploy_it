@@ -20,19 +20,30 @@ def initialization():
 
 
 def gunicorn_config():
+
+    def validate_django_project_name(x):
+        if len(x) > 0:
+            return True
+        return "Django project name cannot be blank."
+
+    def validate_username(x):
+        pass
+
     # Creating file for gunicorn
-    print("Answer the following questions to make your project ready for deployment")
+    spinner.info("Answer the following questions to make your project ready for deployment")
 
     gunicorn_questions = [
         {
             "type": "input",
             "name": "django_project_name",
             "message": "Django project name: ",
+            "validate": validate_django_project_name
         },
         {
             "type": "input",
             "name": "username",
             "message": "What's the username that is being used on the server?",
+            "validate": validate_username
         },
         {
             "type": "input",
@@ -56,13 +67,13 @@ def gunicorn_config():
     return gunicorn_answers
 
 
-def generate_gunicorn_config_file(gunicorn_answers):
+def generate_gunicorn_config_file(config):
     print("Generating file...")
     with open("gunicorn-template", "r") as f:
         template = Template(f.read())
         print("Gunicorn service file created!")
         gunicorn_service_file = open("deploy_it/gunicorn.service", "w")
-        gunicorn_service_file.write(template.render(gunicorn_answers))
+        gunicorn_service_file.write(template.render(config))
         gunicorn_service_file.close()
 
 
@@ -88,13 +99,13 @@ def nginx_config():
     return nginx_answers
 
 
-def generate_nginx_config_file(nginx_answers):
+def generate_nginx_config_file(config):
     print("Generating file...")
     with open("nginx-template", "r") as f:
         template = Template(f.read())
         print("Nginx service file created!")
-        nginx_file = open("deploy_it/" + nginx_answers["django_project_name"], "w")
-        nginx_file.write(template.render(nginx_answers))
+        nginx_file = open("deploy_it/" + config["django_project_name"], "w")
+        nginx_file.write(template.render(config))
         nginx_file.close()
 
 
@@ -215,6 +226,7 @@ def main():
     # generate nginx config file
     nconfig = nginx_config()
     nconfig.update(gconfig)
+
     generate_nginx_config_file(nconfig)
 
     # register gunicorn service file in systemd
