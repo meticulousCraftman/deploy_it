@@ -22,7 +22,6 @@ def initialization():
 
 
 def gunicorn_config():
-
     def validate_django_project_name(project_name):
         if len(project_name) > 0:
             return True
@@ -40,7 +39,7 @@ def gunicorn_config():
         path = pathlib.Path(venv_raw_path)
 
         # Assuming the venv has been created using virutalenv
-        path = path / 'bin' / 'activate'
+        path = path / "bin" / "activate"
 
         # Check if the bin/activate file exists?
         if path.exists():
@@ -48,35 +47,60 @@ def gunicorn_config():
 
         return f"Unable to find a virtual env at {str(path)}. Please check the path (Only virtualenv env's supported)"
 
+    def validate_wsgi_path(raw_wsgi_path):
+        wsgi_path = raw_wsgi_path
+
+        # Create path to the file
+        wsgi_path = wsgi_path.split(".")
+        wsgi_path[-1] = wsgi_path[-1]+".py"
+        wsgi_path = "/".join(wsgi_path)
+        path = pathlib.Path(wsgi_path)
+        if path.exists():
+            return True
+        return f"Unable to find wsgi file at {path}"
+
+    def validate_wsgi_app_name(wsgi_app_name):
+        if len(wsgi_app_name) > 0:
+            return True
+
+        return "WSGI application cannot be blank."
 
     # Creating file for gunicorn
-    spinner.info("Answer the following questions to make your project ready for deployment")
+    spinner.info(
+        "Answer the following questions to make your project ready for deployment"
+    )
 
     gunicorn_questions = [
         {
             "type": "input",
             "name": "django_project_name",
             "message": "Django project name: ",
-            "validate": validate_django_project_name
+            "validate": validate_django_project_name,
         },
         {
             "type": "input",
             "name": "username",
             "message": "What's the username that is being used on the server?",
-            "validate": validate_username
+            "validate": validate_username,
         },
         {
             "type": "input",
             "name": "venv_path",
             "message": "Enter virtual environment folder name (or absolute path):",
-            "validate": validate_venv_path
+            "validate": validate_venv_path,
         },
         {
             "type": "input",
             "name": "wsgi_path",
-            "message": "Enter dot separated WSGI file location:",
+            "message": "Enter dot separated WSGI file location with respect to current working directory (eg: config.wsgi):",
+            "validate": validate_wsgi_path,
         },
-        {"type": "input", "name": "wsgi_app_name", "message": "Name of WSGI app:"},
+        {
+            "type": "input",
+            "name": "wsgi_app_name",
+            "message": "Name of WSGI app:",
+            "validate": validate_wsgi_app_name,
+        },
     ]
 
     gunicorn_answers = prompt(gunicorn_questions)
@@ -170,14 +194,16 @@ def register_gunicorn_service(nginx_answers):
 
         # If gunicorn has started, we should see a project_name.sock file
         if os.path.exists(
-                nginx_answers["working_directory"]
-                + "/"
-                + nginx_answers["django_project_name"]
-                + ".sock"
+            nginx_answers["working_directory"]
+            + "/"
+            + nginx_answers["django_project_name"]
+            + ".sock"
         ):
             spinner.succeed("Socket file found. Gunicorn has started.")
         else:
-            spinner.fail("gunicorn.sock file not found. Maybe gunicorn wasn't able to start :(")
+            spinner.fail(
+                "gunicorn.sock file not found. Maybe gunicorn wasn't able to start :("
+            )
 
 
 # Check if nginx folder is present
@@ -191,9 +217,13 @@ def register_nginx_config_file(nginx_answers):
             shutil.copyfile(f"deploy_it/{nginx_answers['django_project_name']}")
             service_registered = True
         else:
-            print("Couldn't find nginx configuration folder. Maybe it isn't installed :(")
+            print(
+                "Couldn't find nginx configuration folder. Maybe it isn't installed :("
+            )
     except PermissionError:
-        spinner.fail("Unable to copy nginx config file. You have to manually copy the file.")
+        spinner.fail(
+            "Unable to copy nginx config file. You have to manually copy the file."
+        )
 
     if service_registered:
         # Creating a soft link to sites-available
@@ -227,8 +257,9 @@ def register_nginx_config_file(nginx_answers):
 
 
 def parse_user_input(config):
-    config['working_directory'] = os.getcwd()
+    config["working_directory"] = os.getcwd()
     return config
+
 
 # restart nginx
 # enable nginx to pass through the firewall
