@@ -7,10 +7,14 @@ from PyInquirer import prompt
 from jinja2 import Template
 from pyfiglet import Figlet
 from pystemd.systemd1 import Unit
+from halo import Halo
+
+spinner = Halo()
 
 
 def initialization():
-    os.mkdir("./deploy_it")
+    if not os.path.exists("deploy_it/"):
+        os.mkdir("./deploy_it")
     banner = Figlet(font="slant").renderText("Deploy it")
     print(banner)
 
@@ -82,7 +86,6 @@ def nginx_config():
 
     nginx_answers = prompt(nginx_questions)
     return nginx_answers
-    # nginx_answers.update(gunicorn_answers)
 
 
 def generate_nginx_config_file(nginx_answers):
@@ -110,71 +113,90 @@ def generate_readme():
 
 # Check if systemd folder is present
 # Then copy the gunicorn file to that folder
-def register_gunicorn_service():
-    if os.path.exists("/etc/systemd/system/"):
-        print("systemd folder found!")
-        shutil.copyfile(
-            "deploy_it/gunicorn.service", "/etc/systemd/system/gunicorn.service"
+def register_gunicorn_service(nginx_answers):
+    service_registered = False
+    try:
+        if os.path.exists("/etc/systemd/system/"):
+            print("systemd folder found!")
+            shutil.copyfile(
+                "deploy_it/gunicorn.service", "/etc/systemd/system/gunicorn.service"
+            )
+            service_registered = True
+        else:
+            print("systemd folder was not found! Couldn't copy gunicorn.service file.")
+    except PermissionError:
+        spinner.fail(
+            "The script does not has the permission to copy files /etc/systemd/system/ folder."
         )
-    else:
-        print("systemd folder was not found! Couldn't copy gunicorn.service file.")
+        spinner.info(
+            "You have to manually copy the gunicorn.service file to /etc/systemd/system/ folder."
+        )
+
+    if service_registered:
+
+        # Loading the Unit file and starting systemd service
+        unit = Unit(b"gunicorn.service")
+        unit.load()
+        unit.Unit.Start(b"replace")
+        spinner.info("Sleeping for 7 seconds and waiting for gunicorn to start")
+        time.sleep(7)
+
+        # If gunicorn has started, we should see a project_name.sock file
+        if os.path.exists(
+                nginx_answers["working_directory"]
+                + "/"
+                + nginx_answers["django_project_name"]
+                + ".sock"
+        ):
+            spinner.succeed("Socket file found. Gunicorn has started.")
+        else:
+            spinner.fail("gunicorn.sock file not found. Maybe gunicorn wasn't able to start :(")
 
 
 # Check if nginx folder is present
 # If the folder is present, then copy the nginx server config files
 def register_nginx_config_file(nginx_answers):
-    if os.path.exists("/etc/nginx/sites-available/"):
-        print("Found nginx folder")
-        shutil.copyfile(f"deploy_it/{nginx_answers['django_project_name']}")
-    else:
-        print("Couldn't find nginx configuration folder. Maybe it isn't installed :(")
+    service_registered = False
 
-    # Loading the Unit file and starting systemd service
-    unit = Unit(b"gunicorn.service")
-    unit.load()
-    unit.Unit.Start(b"replace")
-    print("Sleeping for 7 seconds and waiting for gunicorn to start")
-    time.sleep(7)
+    try:
+        if os.path.exists("/etc/nginx/sites-available/"):
+            print("Found nginx folder")
+            shutil.copyfile(f"deploy_it/{nginx_answers['django_project_name']}")
+            service_registered = True
+        else:
+            print("Couldn't find nginx configuration folder. Maybe it isn't installed :(")
+    except PermissionError:
+        spinner.fail("Unable to copy nginx config file. You have to manually copy the file.")
 
-    # If gunicorn has started, we should see a project_name.sock file
-    if os.path.exists(
-        nginx_answers["working_directory"]
-        + "/"
-        + nginx_answers["django_project_name"]
-        + ".sock"
-    ):
-        print("Socket file found. Gunicorn has started.")
-    else:
-        print(".sock file not found. Maybe gunicorn wasn't able to start :(")
+    if service_registered:
+        # Creating a soft link to sites-available
+        subprocess.Popen(
+            [
+                "sudo",
+                "ln",
+                "-s",
+                f"/etc/nginx/sites-available/{nginx_answers['django_project_name']}",
+                "/etc/nginx/sites-enabled",
+            ]
+        )
 
-    # Creating a soft link to sites-available
-    subprocess.Popen(
-        [
-            "sudo",
-            "ln",
-            "-s",
-            f"/etc/nginx/sites-available/{nginx_answers['django_project_name']}",
-            "/etc/nginx/sites-enabled",
-        ]
-    )
+        if os.path.exists(
+            f"/etc/nginx/sites-enabled/{nginx_answers['django_project_name']}"
+        ):
+            print("Nginx config file link created to sites-enabled")
+        else:
+            print("Unable to create a link of nginx config file to sites-enabled")
 
-    if os.path.exists(
-        f"/etc/nginx/sites-enabled/{nginx_answers['django_project_name']}"
-    ):
-        print("Nginx config file link created to sites-enabled")
-    else:
-        print("Unable to create a link of nginx config file to sites-enabled")
+        # Checking nginx config file syntax
+        out = subprocess.Popen(
+            ["sudo", "nginx", "-t"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        stdout, stderr = out.communicate()
 
-    # Checking nginx config file syntax
-    out = subprocess.Popen(
-        ["sudo", "nginx", "-t"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
-    stdout, stderr = out.communicate()
-
-    if stderr is None:
-        print("nginx file seems to be just fine :)")
-    else:
-        print("There is some problem in the generated nginx config file")
+        if stderr is None:
+            print("nginx file seems to be just fine :)")
+        else:
+            print("There is some problem in the generated nginx config file")
 
 
 # restart nginx
@@ -189,7 +211,7 @@ def main():
     nconfig.update(gconfig)
     generate_nginx_config_file(nconfig)
     generate_readme()
-    register_gunicorn_service()
+    register_gunicorn_service(nconfig)
     register_nginx_config_file(nconfig)
 
 
