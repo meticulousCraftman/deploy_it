@@ -1,3 +1,5 @@
 .idea/
 venv/
 deploy_it/
+__pycache__/
+delpoy_it.egg-info/
