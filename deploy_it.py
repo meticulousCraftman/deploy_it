@@ -347,6 +347,16 @@ def main():
     # ask questions for creating nginx config file
     # generate nginx config file
     nconfig = nginx_config()
+
+    # Check whether the user has answered all the questions or not
+    if not (
+            "staticfile_folder" in nconfig
+            and "static_endpoint" in nconfig
+            and "server_ip_address" in nconfig
+    ):
+        spinner.fail("Exiting. Bye :)")
+        sys.exit(0)
+
     nconfig.update(gconfig)
     generate_nginx_config_file(nconfig)
 
