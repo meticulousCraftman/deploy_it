@@ -204,15 +204,26 @@ def register_nginx_config_file(nginx_answers):
 
 
 def main():
+    # Initialize the current working directory by creating deploy_it/ folder
+    # ask questions to create the gunicorn config file
+    # Finally, generate the config file
     initialization()
     gconfig = gunicorn_config()
     generate_gunicorn_config_file(gconfig)
+
+    # ask questions for creating nginx config file
+    # generate nginx config file
     nconfig = nginx_config()
     nconfig.update(gconfig)
     generate_nginx_config_file(nconfig)
-    generate_readme()
+
+    # register gunicorn service file in systemd
     register_gunicorn_service(nconfig)
+    # register nginx config file under
     register_nginx_config_file(nconfig)
+
+    # Generate readme file under deploy_it folder
+    generate_readme()
 
 
 if __name__ == "__main__":
