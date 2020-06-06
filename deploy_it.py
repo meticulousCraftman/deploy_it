@@ -5,6 +5,7 @@ import time
 import pwd
 import pathlib
 import sys
+import pystemd
 
 from PyInquirer import prompt
 from jinja2 import Template
@@ -110,7 +111,9 @@ def gunicorn_config():
 
 def generate_gunicorn_config_file(config):
     spinner.start("Generating Gunicorn service file...")
-    with open("gunicorn-template", "r") as f:
+    p = pathlib.Path(__file__).parents[0]
+    template_file_path = f"{p}/gunicorn-template"
+    with open(template_file_path, "r") as f:
         template = Template(f.read())
         gunicorn_service_file = open("deploy_it/gunicorn.service", "w")
         gunicorn_service_file.write(template.render(config))
@@ -170,7 +173,9 @@ def nginx_config():
 
 def generate_nginx_config_file(config):
     spinner.start("Generating Nginx config file...")
-    with open("nginx-template", "r") as f:
+    p = pathlib.Path(__file__).parents[0]
+    template_file_path = f"{p}/nginx-template"
+    with open(template_file_path, "r") as f:
         template = Template(f.read())
         nginx_file = open("deploy_it/" + config["django_project_name"], "w")
         nginx_file.write(template.render(config))
@@ -251,7 +256,7 @@ def register_nginx_config_file(nginx_answers):
             shutil.copyfile(f"deploy_it/{nginx_answers['django_project_name']}")
             service_registered = True
         else:
-            print(
+            spinner.fail(
                 "Couldn't find nginx configuration folder. Maybe it isn't installed :("
             )
     except PermissionError:
@@ -297,13 +302,16 @@ def parse_user_input(config):
 
 # restart nginx
 def restart_nginx():
-    spinner.start("Restarting Nginx service...")
-    unit = Unit(b"nginx")
-    unit.load()
-    unit.Unit.Start(b"replace")
-    time.sleep(5)
-    unit.Unit.Stop(b"replace")
-    spinner.stop()
+    try:
+        spinner.start("Restarting Nginx service...")
+        unit = Unit(b"nginx")
+        unit.load()
+        unit.Unit.Start(b"replace")
+        time.sleep(5)
+        unit.Unit.Stop(b"replace")
+        spinner.stop()
+    except pystemd.dbusexc.DBusInvalidArgsError:
+        spinner.fail("Unable to restart nginx due to some error. You would have to restart it manually.")
 
 
 # enable nginx to pass through the firewall
@@ -358,10 +366,9 @@ def main():
         sys.exit(0)
 
     nconfig.update(gconfig)
-    generate_nginx_config_file(nconfig)
-
-    # Add whatever extra keys have to be added to this dictionary
     nconfig = parse_user_input(nconfig)
+
+    generate_nginx_config_file(nconfig)
 
     # register gunicorn service file in systemd
     register_gunicorn_service(nconfig)
@@ -373,6 +380,8 @@ def main():
 
     # Generate readme file under deploy_it folder
     generate_readme()
+
+    spinner.succeed("Files have been generated under deploy_it/ folder. Read the README.txt file for more instructions.")
 
 
 if __name__ == "__main__":
