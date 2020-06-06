@@ -4,6 +4,7 @@ import subprocess
 import time
 import pwd
 import pathlib
+import sys
 
 from PyInquirer import prompt
 from jinja2 import Template
@@ -329,6 +330,18 @@ def main():
     # Finally, generate the config file
     initialization()
     gconfig = gunicorn_config()
+
+    # Check whether the user has answered all the questions or not
+    if not (
+        "wsgi_app_name" in gconfig
+        and "wsgi_path" in gconfig
+        and "venv_path" in gconfig
+        and "username" in gconfig
+        and "django_project_name" in gconfig
+    ):
+        spinner.fail("Exiting. Bye :)")
+        sys.exit(0)
+
     generate_gunicorn_config_file(gconfig)
 
     # ask questions for creating nginx config file
