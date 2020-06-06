@@ -15,7 +15,7 @@ setup(
     author="Apoorva Singh",
     author_email="apoorva.singh157@gmail.com",
     url="https://github.com/meticulousCraftman/deploy_it",
-    description="Demo Package for GfG Article.",
+    description="Deploy Django projects to virtual private server in a single command.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",
@@ -29,5 +29,5 @@ setup(
     keywords="python devops django gunicorn nginx",
     install_requires=requirements,
     zip_safe=False,
-    include_package_data=True
+    include_package_data=True,
 )
