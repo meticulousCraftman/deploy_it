@@ -52,7 +52,7 @@ def gunicorn_config():
 
         # Create path to the file
         wsgi_path = wsgi_path.split(".")
-        wsgi_path[-1] = wsgi_path[-1]+".py"
+        wsgi_path[-1] = wsgi_path[-1] + ".py"
         wsgi_path = "/".join(wsgi_path)
         path = pathlib.Path(wsgi_path)
         if path.exists():
@@ -118,20 +118,46 @@ def generate_gunicorn_config_file(config):
 
 
 def nginx_config():
+    def validate_server_ip_address(ip_address):
+        # Do proper IP address or domain name parsing here
+        if len(ip_address) > 0:
+            return True
+
+        return "IP address cannot be blank"
+
+    def validate_static_endpoint(static_endpoint):
+        if len(static_endpoint) > 0:
+            return True
+
+        return "static endpoint cannot be blank"
+
+    def validate_staticfile_folder(staticfile_folder):
+        path = pathlib.Path(staticfile_folder)
+        if path.exists():
+            return True
+        return f"staticfile folder not found at {path}"
+
     # Creating file for Nginx
     print("Creating configuration file for Nginx")
 
     nginx_questions = [
-        {"type": "input", "name": "server_ip_address", "message": "Server IP address:"},
+        {
+            "type": "input",
+            "name": "server_ip_address",
+            "message": "Server IP address:",
+            "validate": validate_server_ip_address,
+        },
         {
             "type": "input",
             "name": "static_endpoint",
             "message": "What is the endpoint used to serve static content:",
+            "validate": validate_static_endpoint,
         },
         {
             "type": "input",
             "name": "staticfile_folder",
             "message": "Absolute path of folder with static assets:",
+            "validate": validate_staticfile_folder,
         },
     ]
 
