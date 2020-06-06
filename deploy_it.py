@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import time
 import pwd
+import pathlib
 
 from PyInquirer import prompt
 from jinja2 import Template
@@ -35,6 +36,18 @@ def gunicorn_config():
         except KeyError:
             return "Specified user was not found. Please enter the correct username."
 
+    def validate_venv_path(venv_raw_path):
+        path = pathlib.Path(venv_raw_path)
+
+        # Assuming the venv has been created using virutalenv
+        path = path / 'bin' / 'activate'
+
+        # Check if the bin/activate file exists?
+        if path.exists():
+            return True
+
+        return f"Unable to find a virtual env at {str(path)}. Please check the path (Only virtualenv env's supported)"
+
 
     # Creating file for gunicorn
     spinner.info("Answer the following questions to make your project ready for deployment")
@@ -54,13 +67,9 @@ def gunicorn_config():
         },
         {
             "type": "input",
-            "name": "working_directory",
-            "message": "Enter absolute path of the project's working directory:",
-        },
-        {
-            "type": "input",
             "name": "venv_path",
-            "message": "Enter the path to your venv folder:",
+            "message": "Enter virtual environment folder name (or absolute path):",
+            "validate": validate_venv_path
         },
         {
             "type": "input",
@@ -217,6 +226,10 @@ def register_nginx_config_file(nginx_answers):
             print("There is some problem in the generated nginx config file")
 
 
+def parse_user_input(config):
+    config['working_directory'] = os.getcwd()
+    return config
+
 # restart nginx
 # enable nginx to pass through the firewall
 
@@ -233,8 +246,10 @@ def main():
     # generate nginx config file
     nconfig = nginx_config()
     nconfig.update(gconfig)
-
     generate_nginx_config_file(nconfig)
+
+    # Add whatever extra keys have to be added to this dictionary
+    nconfig = parse_user_input(nconfig)
 
     # register gunicorn service file in systemd
     register_gunicorn_service(nconfig)
