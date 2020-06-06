@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import time
+import pwd
 
 from PyInquirer import prompt
 from jinja2 import Template
@@ -21,13 +22,19 @@ def initialization():
 
 def gunicorn_config():
 
-    def validate_django_project_name(x):
-        if len(x) > 0:
+    def validate_django_project_name(project_name):
+        if len(project_name) > 0:
             return True
         return "Django project name cannot be blank."
 
-    def validate_username(x):
-        pass
+    def validate_username(username):
+        username = username.strip()
+        try:
+            pwd.getpwnam(username)
+            return True
+        except KeyError:
+            return "Specified user was not found. Please enter the correct username."
+
 
     # Creating file for gunicorn
     spinner.info("Answer the following questions to make your project ready for deployment")
