@@ -49,6 +49,10 @@ def gunicorn_config():
 
         return f"Unable to find a virtual env at {str(path)}. Please check the path (Only virtualenv env's supported)"
 
+    def filter_venv_path(venv_raw_path):
+        path = pathlib.Path(venv_raw_path).resolve()
+        return str(path)
+
     def validate_wsgi_path(raw_wsgi_path):
         wsgi_path = raw_wsgi_path
 
@@ -90,6 +94,7 @@ def gunicorn_config():
             "name": "venv_path",
             "message": "Enter virtual environment folder name (or absolute path):",
             "validate": validate_venv_path,
+            "filter": filter_venv_path,
         },
         {
             "type": "input",
@@ -143,6 +148,10 @@ def nginx_config():
             return True
         return f"staticfile folder not found at {path}"
 
+    def filter_staticfile_folder(staticfile_folder):
+        path = pathlib.Path(staticfile_folder).resolve()
+        return str(path)
+
     # Creating file for Nginx
     spinner.info("Creating configuration file for Nginx")
 
@@ -164,6 +173,7 @@ def nginx_config():
             "name": "staticfile_folder",
             "message": "Absolute path of folder with static assets:",
             "validate": validate_staticfile_folder,
+            "filter": filter_staticfile_folder,
         },
     ]
 
@@ -296,7 +306,20 @@ def register_nginx_config_file(nginx_answers):
 
 
 def parse_user_input(config):
+    # Filling in the information for current working directory
     config["working_directory"] = os.getcwd()
+
+    # Path to bin/ folder for the project's virtual environment
+    config["venv_bin_directory"] = config["venv_path"] + "/bin/"
+
+    # Path to gunicorn binary in venv folder
+    config["gunicorn_path"] = config["venv_path"] + "/bin/gunicorn"
+
+    # Path to gunicorn socket file
+    config["gunicorn_socket_file_path"] = (
+        config["working_directory"] + "/" + config["django_project_name"] + ".sock"
+    )
+
     return config
 
 
@@ -311,7 +334,9 @@ def restart_nginx():
         unit.Unit.Stop(b"replace")
         spinner.stop()
     except pystemd.dbusexc.DBusInvalidArgsError:
-        spinner.fail("Unable to restart nginx due to some error. You would have to restart it manually.")
+        spinner.fail(
+            "Unable to restart nginx due to some error. You would have to restart it manually."
+        )
 
 
 # enable nginx to pass through the firewall
@@ -350,17 +375,15 @@ def main():
         spinner.fail("Exiting. Bye :)")
         sys.exit(0)
 
-    generate_gunicorn_config_file(gconfig)
-
     # ask questions for creating nginx config file
     # generate nginx config file
     nconfig = nginx_config()
 
     # Check whether the user has answered all the questions or not
     if not (
-            "staticfile_folder" in nconfig
-            and "static_endpoint" in nconfig
-            and "server_ip_address" in nconfig
+        "staticfile_folder" in nconfig
+        and "static_endpoint" in nconfig
+        and "server_ip_address" in nconfig
     ):
         spinner.fail("Exiting. Bye :)")
         sys.exit(0)
@@ -368,6 +391,7 @@ def main():
     nconfig.update(gconfig)
     nconfig = parse_user_input(nconfig)
 
+    generate_gunicorn_config_file(nconfig)
     generate_nginx_config_file(nconfig)
 
     # register gunicorn service file in systemd
@@ -381,7 +405,9 @@ def main():
     # Generate readme file under deploy_it folder
     generate_readme()
 
-    spinner.succeed("Files have been generated under deploy_it/ folder. Read the README.txt file for more instructions.")
+    spinner.succeed(
+        "Files have been generated under deploy_it/ folder. Read the README.txt file for more instructions."
+    )
 
 
 if __name__ == "__main__":

@@ -6,7 +6,9 @@ After=network.target
 User={{username}}
 Group=www-data
 WorkingDirectory={{working_directory}}
-ExecStart={{venv_path}}/bin/gunicorn --access-logfile - --workers 3 --bind unix:{{working_directory}}/{{django_project_name}}.sock {{wsgi_path}}:{{wsgi_app_name}}
+ExecStart={{gunicorn_path}} --access-logfile - --workers 3 \
+--bind unix:{{gunicorn_socket_file_path}} \
+{{wsgi_path}}:{{wsgi_app_name}}
 
 [Install]
 WantedBy=multi-user.target
