@@ -29,4 +29,5 @@ setup(
     keywords="python devops django gunicorn nginx",
     install_requires=requirements,
     zip_safe=False,
+    include_package_data=True
 )

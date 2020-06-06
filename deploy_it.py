@@ -108,13 +108,15 @@ def gunicorn_config():
 
 
 def generate_gunicorn_config_file(config):
-    print("Generating file...")
+    spinner.start("Generating Gunicorn service file...")
     with open("gunicorn-template", "r") as f:
         template = Template(f.read())
-        print("Gunicorn service file created!")
         gunicorn_service_file = open("deploy_it/gunicorn.service", "w")
         gunicorn_service_file.write(template.render(config))
         gunicorn_service_file.close()
+        spinner.info("Gunicorn service file created!")
+
+    spinner.stop()
 
 
 def nginx_config():
@@ -138,7 +140,7 @@ def nginx_config():
         return f"staticfile folder not found at {path}"
 
     # Creating file for Nginx
-    print("Creating configuration file for Nginx")
+    spinner.info("Creating configuration file for Nginx")
 
     nginx_questions = [
         {
@@ -166,18 +168,19 @@ def nginx_config():
 
 
 def generate_nginx_config_file(config):
-    print("Generating file...")
+    spinner.start("Generating Nginx config file...")
     with open("nginx-template", "r") as f:
         template = Template(f.read())
-        print("Nginx service file created!")
         nginx_file = open("deploy_it/" + config["django_project_name"], "w")
         nginx_file.write(template.render(config))
         nginx_file.close()
+        spinner.info("Nginx service file created!")
 
 
 # Creating a readme file inside deploy_it/ folder
 # under the current working directory
 def generate_readme():
+    spinner.start("Generating README file...")
     with open("deploy_it/README.txt", "w") as f:
         f.write(
             "This folder contains the server configuration file for deploying the django project.\n"
@@ -186,6 +189,7 @@ def generate_readme():
             "And will also contain the log file for the project when it's deployed."
         )
         f.close()
+    spinner.stop()
 
 
 # Check if systemd folder is present
@@ -194,13 +198,16 @@ def register_gunicorn_service(nginx_answers):
     service_registered = False
     try:
         if os.path.exists("/etc/systemd/system/"):
-            print("systemd folder found!")
+            spinner.succeed("systemd folder found!")
             shutil.copyfile(
                 "deploy_it/gunicorn.service", "/etc/systemd/system/gunicorn.service"
             )
+            spinner.succeed("Gunicorn service file copied to systemd")
             service_registered = True
         else:
-            print("systemd folder was not found! Couldn't copy gunicorn.service file.")
+            spinner.fail(
+                "systemd folder was not found! Couldn't copy gunicorn.service file."
+            )
     except PermissionError:
         spinner.fail(
             "The script does not has the permission to copy files /etc/systemd/system/ folder."
@@ -288,10 +295,35 @@ def parse_user_input(config):
 
 
 # restart nginx
+def restart_nginx():
+    spinner.start("Restarting Nginx service...")
+    unit = Unit(b"nginx")
+    unit.load()
+    unit.Unit.Start(b"replace")
+    time.sleep(5)
+    unit.Unit.Stop(b"replace")
+    spinner.stop()
+
+
 # enable nginx to pass through the firewall
+def setup_firewall():
+    out = subprocess.Popen(
+        ["sudo", "ufw", "status"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+    stdout, stderr = out.communicate()
+    stdout = stdout.decode("utf-8")
+
+    if stdout.startswith("Status: inactive"):
+        spinner.info("Firewall is inactive!")
+
+    if stderr:
+        spinner.fail("We got some error while checking for firewall status.")
+        spinner.fail(stderr.decode("utf-8"))
 
 
 def main():
+    print(__file__)
+
     # Initialize the current working directory by creating deploy_it/ folder
     # ask questions to create the gunicorn config file
     # Finally, generate the config file
@@ -312,6 +344,9 @@ def main():
     register_gunicorn_service(nconfig)
     # register nginx config file under
     register_nginx_config_file(nconfig)
+
+    restart_nginx()
+    setup_firewall()
 
     # Generate readme file under deploy_it folder
     generate_readme()
