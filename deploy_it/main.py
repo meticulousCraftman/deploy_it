@@ -297,7 +297,7 @@ def register_nginx_config_file(nginx_answers):
             print("Found nginx folder")
             shutil.copyfile(
                 f"deploy_it/{nginx_answers['django_project_name']}",
-                "/etc/nginx/sites-available",
+                f"/etc/nginx/sites-available/{nginx_answers['django_project_name']}",
             )
             service_registered = True
         else:
