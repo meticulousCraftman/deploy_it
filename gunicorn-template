@@ -5,6 +5,7 @@ After=network.target
 [Service]
 User={{username}}
 Group=www-data
+{% if project_env_file %}EnvironmentFile={{project_env_file}}{% endif %}
 WorkingDirectory={{working_directory}}
 ExecStart={{gunicorn_path}} --access-logfile - --workers 3 \
 --bind unix:{{gunicorn_socket_file_path}} \

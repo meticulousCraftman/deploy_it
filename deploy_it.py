@@ -71,6 +71,31 @@ def gunicorn_config():
 
         return "WSGI application cannot be blank."
 
+    def validate_project_env_file(envfile_path):
+        envfile_path = envfile_path.strip()
+
+        if len(envfile_path) > 0:
+            # if environment file is found, great :)
+            if pathlib.Path(envfile_path).exists():
+                return True
+
+            # if env file is not found return an error
+            else:
+                return f"Environment file not found at {envfile_path}"
+
+        # If the user entered blank, skip it
+        return True
+
+    def filter_project_env_file(envfile_path):
+        envfile_path = envfile_path.strip()
+
+        # if envfile is specified, generate it's absolute path
+        if envfile_path:
+            return pathlib.Path(envfile_path).resolve()
+
+        # return an empty string if nothing is specified in path
+        return envfile_path.strip()
+
     # Creating file for gunicorn
     spinner.info(
         "Answer the following questions to make your project ready for deployment"
@@ -107,6 +132,13 @@ def gunicorn_config():
             "name": "wsgi_app_name",
             "message": "Name of WSGI app:",
             "validate": validate_wsgi_app_name,
+        },
+        {
+            "type": "input",
+            "name": "project_env_file",
+            "message": "Django Project Environment Variables file (optional):",
+            "validate": validate_project_env_file,
+            "filter": filter_project_env_file,
         },
     ]
 
