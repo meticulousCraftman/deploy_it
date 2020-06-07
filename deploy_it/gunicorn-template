@@ -1,0 +1,17 @@
+[Unit]
+Description=Gunicorn daemon for Django project
+After=network.target
+
+[Service]
+User={{username}}
+Group=www-data
+{% if project_env_file %}EnvironmentFile={{project_env_file}}{% endif %}
+WorkingDirectory={{working_directory}}
+ExecStart={{gunicorn_path}} --access-logfile - --workers 3 \
+--access-logfile {{gunicorn_access_log_file_path}} \
+--error-logfile {{gunicorn_error_log_file_path}} \
+--bind unix:{{gunicorn_socket_file_path}} \
+{{wsgi_path}}:{{wsgi_app_name}}
+
+[Install]
+WantedBy=multi-user.target

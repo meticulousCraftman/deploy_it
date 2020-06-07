@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name {{server_ip_address}};
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location {{static_endpoint}} {
+        root {{staticfile_folder}};
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:{{gunicorn_socket_file_path}};
+    }
+}

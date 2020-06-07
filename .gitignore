@@ -1,6 +1,5 @@
 .idea/
 venv/
-deploy_it/
 __pycache__/
 deploy_it.egg-info/
 djangoProj/
