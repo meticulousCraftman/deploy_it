@@ -352,6 +352,14 @@ def parse_user_input(config):
         config["working_directory"] + "/" + config["django_project_name"] + ".sock"
     )
 
+    config["gunicorn_error_log_file_path"] = (
+        config["working_directory"] + "/deploy_it/gunicorn-error.log"
+    )
+
+    config["gunicorn_access_log_file_path"] = (
+        config["working_directory"] + "/deploy_it/gunicorn-access.log"
+    )
+
     return config
 
 

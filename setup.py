@@ -11,7 +11,7 @@ long_description = (
 
 setup(
     name="delpoy_it",
-    version="0.2.0",
+    version="0.3.0",
     author="Apoorva Singh",
     author_email="apoorva.singh157@gmail.com",
     url="https://github.com/meticulousCraftman/deploy_it",
