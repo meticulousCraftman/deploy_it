@@ -10,8 +10,8 @@ long_description = (
 )
 
 setup(
-    name="delpoy_it",
-    version="0.3.0",
+    name="deploy_it",
+    version="0.3.1",
     author="Apoorva Singh",
     author_email="apoorva.singh157@gmail.com",
     url="https://github.com/meticulousCraftman/deploy_it",
@@ -30,4 +30,5 @@ setup(
     install_requires=requirements,
     zip_safe=False,
     include_package_data=True,
+    python_requires=">=3.6",
 )

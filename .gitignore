@@ -5,3 +5,4 @@ __pycache__/
 delpoy_it.egg-info/
 djangoProj/
 dist/
+venvTest/
