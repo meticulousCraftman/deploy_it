@@ -11,7 +11,7 @@ long_description = (
 
 setup(
     name="deploy_it",
-    version="0.3.1",
+    version="0.3.2",
     author="Apoorva Singh",
     author_email="apoorva.singh157@gmail.com",
     url="https://github.com/meticulousCraftman/deploy_it",
@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     license="MIT",
     packages=find_packages(),
-    entry_points={"console_scripts": ["deploy_it = deploy_it:main"]},
+    entry_points={"console_scripts": ["deploy_it = deploy_it.main:main"]},
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

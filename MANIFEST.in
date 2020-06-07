@@ -1,3 +1,3 @@
-include gunicorn-template
-include nginx-template
+include deploy_it/gunicorn-template
+include deploy_it/nginx-template
 include requirements.txt

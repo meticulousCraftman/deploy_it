@@ -2,7 +2,7 @@
 venv/
 deploy_it/
 __pycache__/
-delpoy_it.egg-info/
+deploy_it.egg-info/
 djangoProj/
 dist/
 venvTest/
